@@ -16,10 +16,12 @@
 
 package com.vrem.wifianalyzer;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -55,6 +57,8 @@ import static android.support.design.widget.NavigationView.OnNavigationItemSelec
 
 public class MainActivity extends AppCompatActivity implements OnSharedPreferenceChangeListener, OnNavigationItemSelectedListener {
     private static final String WI_FI_ANALYZER_BETA = "WiFi Analyzer BETA";
+    private static final int PERMISSIONS_REQUEST_CODE_ACCESS_LOCATION = 0x123450;
+    private static final int PERMISSIONS_REQUEST_CODE_ACCESS_WIFI_STATE = 0x123451;
 
     private MainContext mainContext = MainContext.INSTANCE;
     private ThemeStyle currentThemeStyle;
@@ -64,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        checkPermissions();
         initializeMainContext(this);
 
         Settings settings = mainContext.getSettings();
@@ -91,6 +96,27 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
         onNavigationItemSelected(navigationMenuView.defaultMenuItem());
 
         new ConnectionView(this);
+    }
+
+    private void checkPermissions() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                PERMISSIONS_REQUEST_CODE_ACCESS_LOCATION);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+        case PERMISSIONS_REQUEST_CODE_ACCESS_LOCATION:
+            if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                // permission not granted - exit
+                finish();
+            }
+            break;
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     private void initializeMainContext(@NonNull Context context) {
