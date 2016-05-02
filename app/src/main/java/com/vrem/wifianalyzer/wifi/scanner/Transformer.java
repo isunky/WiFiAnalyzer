@@ -68,22 +68,15 @@ public class Transformer {
         List<WiFiDetail> results = new ArrayList<>();
         if (scanResults != null) {
             for (ScanResult scanResult : scanResults) {
-                WiFiSignal wiFiSignal = new WiFiSignal(scanResult.frequency, getWiFiWidth(scanResult), scanResult.level);
+                System.out.println("Scan Result:"+scanResult.toString());
+                WiFiWidth wiFiWidth = WiFiWidth.find(scanResult.channelWidth);
+                WiFiSignal wiFiSignal = new WiFiSignal(scanResult.frequency, wiFiWidth, scanResult.level);
                 WiFiDetail wiFiDetail = new WiFiDetail(scanResult.SSID, scanResult.BSSID, scanResult.capabilities, wiFiSignal);
                 results.add(wiFiDetail);
             }
         }
         addTestData(results);
         return Collections.unmodifiableList(results);
-    }
-
-    private WiFiWidth getWiFiWidth(ScanResult scanResult) {
-        try {
-            return WiFiWidth.find((int) scanResult.getClass().getDeclaredField(Fields.channelWidth.name()).get(scanResult));
-        } catch (Exception e) {
-            // Not APK 23+ can not convert
-            return WiFiWidth.MHZ_20;
-        }
     }
 
     public WiFiData transformToWiFiData(List<ScanResult> scanResults, WifiInfo wifiInfo, List<WifiConfiguration> configuredNetworks) {
@@ -108,12 +101,5 @@ public class Transformer {
         }
     }
 
-    private enum Fields {
-        /*
-                centerFreq0,
-                centerFreq1,
-        */
-        channelWidth
-    }
 
 }
