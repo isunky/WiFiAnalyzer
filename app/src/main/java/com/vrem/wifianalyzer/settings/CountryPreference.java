@@ -17,80 +17,30 @@
 package com.vrem.wifianalyzer.settings;
 
 import android.content.Context;
-import android.preference.ListPreference;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 
 import com.vrem.wifianalyzer.wifi.band.WiFiChannelCountry;
 
-import org.apache.commons.lang3.builder.CompareToBuilder;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class CountryPreference extends ListPreference {
+public class CountryPreference extends CustomPreference {
     public CountryPreference(@NonNull Context context, AttributeSet attrs) {
-        super(context, attrs);
-        initialize(context);
+        super(context, attrs, getData(), getDefault(context));
     }
 
-    private void initialize(@NonNull Context context) {
-        List<Data> datas = getSortedDatas();
-        setEntries(getNames(datas));
-        setEntryValues(getCodes(datas));
-        setDefaultValue(context.getResources().getConfiguration().locale.getCountry());
-    }
-
-    private CharSequence[] getCodes(List<Data> datas) {
-        List<String> entryValues = new ArrayList<>();
-        for (Data data: datas) {
-            entryValues.add(data.getCode());
-        }
-        return entryValues.toArray(new CharSequence[]{});
-    }
-
-    private CharSequence[] getNames(List<Data> datas) {
-        List<String> entries = new ArrayList<>();
-        for (Data data: datas) {
-            entries.add(data.getName());
-        }
-        return entries.toArray(new CharSequence[]{});
-    }
-
-    private List<Data> getSortedDatas() {
-        List<Data> datas = new ArrayList<>();
+    private static List<Data> getData() {
+        List<Data> result = new ArrayList<>();
         for (WiFiChannelCountry wiFiChannelCountry : WiFiChannelCountry.getAll()) {
-            datas.add(new Data(wiFiChannelCountry.getCountryCode(), wiFiChannelCountry.getCountryName()));
+            result.add(new Data(wiFiChannelCountry.getCountryCode(), wiFiChannelCountry.getCountryName()));
         }
-        Collections.sort(datas);
-        return datas;
+        Collections.sort(result);
+        return result;
     }
 
-    class Data implements Comparable<Data> {
-        private final String code;
-        private final String name;
-
-        public Data(String code, String name) {
-            this.code = code;
-            this.name = name;
-        }
-
-        public String getCode() {
-            return code;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public int compareTo(@NonNull Data another) {
-            return new CompareToBuilder()
-                .append(getName(), another.getName())
-                .append(getCode(), another.getCode())
-                .toComparison();
-        }
-
+    private static String getDefault(@NonNull Context context) {
+        return context.getResources().getConfiguration().locale.getCountry();
     }
 }

@@ -18,14 +18,17 @@ package com.vrem.wifianalyzer.about;
 
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 
+import com.vrem.wifianalyzer.MainActivity;
 import com.vrem.wifianalyzer.MainContext;
 import com.vrem.wifianalyzer.R;
 
@@ -42,6 +45,8 @@ public class AboutActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        setApplicationName();
+        setPackageName();
         setVersionNumber();
 
         ActionBar actionBar = getSupportActionBar();
@@ -57,11 +62,26 @@ public class AboutActivity extends AppCompatActivity {
             PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             String versionInfo = packageInfo.versionName;
             if (mainContext.getConfiguration().isDevelopmentMode()) {
-                versionInfo += " - " + packageInfo.versionCode;
+                versionInfo += " - " + packageInfo.versionCode + " SDK:" + Build.VERSION.SDK_INT;
             }
-            ((TextView) findViewById(R.id.version_info)).setText(versionInfo);
+            ((TextView) findViewById(R.id.about_version_info)).setText(versionInfo);
         } catch (PackageManager.NameNotFoundException e) {
             mainContext.getLogger().error(this, "Version Information", e);
+        }
+    }
+
+    private void setPackageName() {
+        if (MainContext.INSTANCE.getConfiguration().isDevelopmentMode()) {
+            TextView textView = (TextView) findViewById(R.id.about_package_name);
+            textView.setText(getPackageName());
+            textView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void setApplicationName() {
+        if (MainContext.INSTANCE.getConfiguration().isDevelopmentMode()) {
+            TextView textView = (TextView) findViewById(R.id.about_app_name);
+            textView.setText(textView.getText() + " " + MainActivity.WI_FI_ANALYZER_BETA);
         }
     }
 

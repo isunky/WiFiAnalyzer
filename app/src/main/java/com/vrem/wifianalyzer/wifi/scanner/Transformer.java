@@ -19,12 +19,7 @@ package com.vrem.wifianalyzer.wifi.scanner;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
-import android.support.annotation.NonNull;
-import android.support.v4.util.Pair;
 
-import com.vrem.wifianalyzer.Configuration;
-import com.vrem.wifianalyzer.wifi.band.WiFiBand;
-import com.vrem.wifianalyzer.wifi.band.WiFiChannel;
 import com.vrem.wifianalyzer.wifi.band.WiFiWidth;
 import com.vrem.wifianalyzer.wifi.model.WiFiConnection;
 import com.vrem.wifianalyzer.wifi.model.WiFiData;
@@ -37,21 +32,15 @@ import java.util.Collections;
 import java.util.List;
 
 public class Transformer {
-    private final Configuration configuration;
-
-    public Transformer(@NonNull Configuration configuration) {
-        this.configuration = configuration;
-    }
-
     protected WiFiConnection transformWifiInfo(WifiInfo wifiInfo) {
         if (wifiInfo == null || wifiInfo.getNetworkId() == -1) {
             return WiFiConnection.EMPTY;
         }
         return new WiFiConnection(
-                WiFiUtils.convertSSID(wifiInfo.getSSID()),
-                wifiInfo.getBSSID(),
-                WiFiUtils.convertIpAddress(wifiInfo.getIpAddress()),
-                wifiInfo.getLinkSpeed());
+            WiFiUtils.convertSSID(wifiInfo.getSSID()),
+            wifiInfo.getBSSID(),
+            WiFiUtils.convertIpAddress(wifiInfo.getIpAddress()),
+            wifiInfo.getLinkSpeed());
     }
 
     protected List<String> transformWifiConfigurations(List<WifiConfiguration> configuredNetworks) {
@@ -64,42 +53,25 @@ public class Transformer {
         return Collections.unmodifiableList(results);
     }
 
-    protected List<WiFiDetail> transformScanResults(List<ScanResult> scanResults) {
+    protected List<WiFiDetail> transformCacheResults(List<CacheResult> cacheResults) {
         List<WiFiDetail> results = new ArrayList<>();
-        if (scanResults != null) {
-            for (ScanResult scanResult : scanResults) {
-                System.out.println("Scan Result:"+scanResult.toString());
+        if (cacheResults != null) {
+            for (CacheResult cacheResult : cacheResults) {
+                ScanResult scanResult = cacheResult.getScanResult();
                 WiFiWidth wiFiWidth = WiFiWidth.find(scanResult.channelWidth);
-                WiFiSignal wiFiSignal = new WiFiSignal(scanResult.frequency, wiFiWidth, scanResult.level);
+                WiFiSignal wiFiSignal = new WiFiSignal(scanResult.frequency, wiFiWidth, cacheResult.getLevelAverage());
                 WiFiDetail wiFiDetail = new WiFiDetail(scanResult.SSID, scanResult.BSSID, scanResult.capabilities, wiFiSignal);
                 results.add(wiFiDetail);
             }
         }
-        addTestData(results);
         return Collections.unmodifiableList(results);
     }
 
-    public WiFiData transformToWiFiData(List<ScanResult> scanResults, WifiInfo wifiInfo, List<WifiConfiguration> configuredNetworks) {
-        List<WiFiDetail> wiFiDetails = transformScanResults(scanResults);
+    public WiFiData transformToWiFiData(List<CacheResult> cacheResults, WifiInfo wifiInfo, List<WifiConfiguration> configuredNetworks) {
+        List<WiFiDetail> wiFiDetails = transformCacheResults(cacheResults);
         WiFiConnection wiFiConnection = transformWifiInfo(wifiInfo);
         List<String> wifiConfigurations = transformWifiConfigurations(configuredNetworks);
         return new WiFiData(wiFiDetails, wiFiConnection, wifiConfigurations);
     }
-
-    private void addTestData(@NonNull List<WiFiDetail> wiFiDetails) {
-        if (configuration.isDevelopmentMode()) {
-            int count = 0;
-            int level = -45;
-            String security = "[WPA-PSK-CCMP+TKIP][WPA2-PSK-CCMP+TKIP][WPS][ESS]";
-            for (Pair<WiFiChannel, WiFiChannel> wiFiChannelPair : WiFiBand.GHZ5.getWiFiChannels().getWiFiChannelPairs()) {
-                WiFiSignal wiFiSignal = new WiFiSignal(wiFiChannelPair.first.getFrequency(), WiFiWidth.MHZ_40, level);
-                WiFiDetail wiFiDetail = new WiFiDetail("TEST-SSID", "BSSID:0A:B0:0" + count + ":0" + count, security, wiFiSignal);
-                wiFiDetails.add(wiFiDetail);
-                count++;
-                level -= 10;
-            }
-        }
-    }
-
 
 }

@@ -56,14 +56,13 @@ import org.apache.commons.lang3.StringUtils;
 import static android.support.design.widget.NavigationView.OnNavigationItemSelectedListener;
 
 public class MainActivity extends AppCompatActivity implements OnSharedPreferenceChangeListener, OnNavigationItemSelectedListener {
-    private static final String WI_FI_ANALYZER_BETA = "WiFi Analyzer BETA";
+    public static final String WI_FI_ANALYZER_BETA = "BETA";
     private static final int PERMISSIONS_REQUEST_CODE_ACCESS_LOCATION = 0x123450;
     private static final int PERMISSIONS_REQUEST_CODE_ACCESS_WIFI_STATE = 0x123451;
 
     private MainContext mainContext = MainContext.INSTANCE;
     private ThemeStyle currentThemeStyle;
     private NavigationMenuView navigationMenuView;
-    private boolean subTitle;
     private String currentCountryCode;
 
     @Override
@@ -92,8 +91,8 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
         drawer.setDrawerListener(toggle);
         toggle.syncState();
 
-        navigationMenuView = new NavigationMenuView(this);
-        onNavigationItemSelected(navigationMenuView.defaultMenuItem());
+        navigationMenuView = new NavigationMenuView(this, settings.getStartMenu());
+        onNavigationItemSelected(navigationMenuView.getCurrentMenuItem());
 
         new ConnectionView(this);
     }
@@ -123,7 +122,7 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
         WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
         Handler handler = new Handler();
         Settings settings = new Settings(context);
-        Configuration configuration = getConfiguration(context);
+        Configuration configuration = new Configuration(isLargeScreenLayout(), isDevelopment());
 
         mainContext.setContext(context);
         mainContext.setConfiguration(configuration);
@@ -133,7 +132,11 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
         mainContext.setVendorService(new VendorService());
         mainContext.setLayoutInflater((LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE));
         mainContext.setLogger(new Logger());
-        mainContext.setScanner(new Scanner(wifiManager, handler, settings, new Transformer(configuration)));
+        mainContext.setScanner(new Scanner(wifiManager, handler, settings, new Transformer()));
+    }
+
+    private boolean isDevelopment() {
+        return getPackageName().contains(WI_FI_ANALYZER_BETA);
     }
 
     private void setWiFiChannelPairs() {
@@ -145,14 +148,10 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
         }
     }
 
-    private Configuration getConfiguration(@NonNull Context context) {
-        boolean isDevelopmentMode = WI_FI_ANALYZER_BETA.equals(context.getString(R.string.app_name));
-        return new Configuration(isLargeScreenLayout(), isDevelopmentMode);
-    }
-
     private boolean isLargeScreenLayout() {
         int screenLayoutSize = getResources().getConfiguration().screenLayout & android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK;
-        return screenLayoutSize == android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE || screenLayoutSize == android.content.res.Configuration.SCREENLAYOUT_SIZE_XLARGE;
+        return screenLayoutSize == android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE ||
+            screenLayoutSize == android.content.res.Configuration.SCREENLAYOUT_SIZE_XLARGE;
     }
 
     @Override
@@ -198,13 +197,13 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
     public boolean onNavigationItemSelected(MenuItem menuItem) {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
-        NavigationMenu item = navigationMenuView.selectedMenuItem(menuItem.getItemId());
-        Fragment fragment = item.getFragment();
+        NavigationMenu navigationMenu = navigationMenuView.findNavigationMenu(menuItem.getItemId());
+        Fragment fragment = navigationMenu.getFragment();
         if (fragment == null) {
-            startActivity(new Intent(this, item.getActivity()));
+            startActivity(new Intent(this, navigationMenu.getActivity()));
         } else {
-            subTitle = item.isSubTitle();
-            getSupportFragmentManager().beginTransaction().replace(R.id.main_fragment, item.getFragment()).commit();
+            navigationMenuView.setCurrentNavigationMenu(navigationMenu);
+            getSupportFragmentManager().beginTransaction().replace(R.id.main_fragment, navigationMenu.getFragment()).commit();
             setTitle(menuItem.getTitle());
             updateSubTitle();
         }
@@ -226,7 +225,8 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
     private void updateSubTitle() {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setSubtitle(subTitle ? mainContext.getSettings().getWiFiBand().getBand() : StringUtils.EMPTY);
+            NavigationMenu navigationMenu = navigationMenuView.getCurrentNavigationMenu();
+            actionBar.setSubtitle(navigationMenu.isWiFiBandSwitchable() ? mainContext.getSettings().getWiFiBand().getBand() : StringUtils.EMPTY);
         }
     }
 
@@ -237,7 +237,9 @@ public class MainActivity extends AppCompatActivity implements OnSharedPreferenc
     private class WiFiBandToggle implements OnClickListener {
         @Override
         public void onClick(View view) {
-            mainContext.getSettings().toggleWiFiBand();
+            if (navigationMenuView.getCurrentNavigationMenu().isWiFiBandSwitchable()) {
+                mainContext.getSettings().toggleWiFiBand();
+            }
         }
     }
 
