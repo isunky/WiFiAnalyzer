@@ -22,7 +22,7 @@ android {
     buildToolsVersion "24.0.1"
 
     defaultConfig {
-        applicationId "com.vrem.wifianalyzer"
+        applicationId "com.dabuapp.wifianalyzer"
         minSdkVersion 22
         targetSdkVersion 24
         versionCode
